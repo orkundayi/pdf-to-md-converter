@@ -1,2 +1,5 @@
 pdfplumber==0.10.3
 click==8.1.7
+tkinterdnd2==0.4.3
+openai==1.54.3
+requests==2.31.0

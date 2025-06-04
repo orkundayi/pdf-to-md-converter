@@ -7,7 +7,7 @@ Kullanım: python main.py <pdf_dosyasi> [çıktı_dizini] [başlık]
 import argparse
 import sys
 import os
-from pdf_to_markdown import PDFToMarkdownConverter, create_gitbook_summary
+from pdf_to_markdown import PDFToMarkdownConverter
 
 def main():
     parser = argparse.ArgumentParser(
@@ -59,7 +59,7 @@ def main():
         
         # GitBook summary dosyası oluştur
         if args.create_gitbook:
-            summary_file = create_gitbook_summary([output_file], os.path.dirname(output_file))
+            summary_file = converter.create_gitbook_summary([output_file], os.path.dirname(output_file))
             print(f"📚 GitBook SUMMARY.md dosyası oluşturuldu: {summary_file}")
         
         print("\n🔧 GitBook ile kullanım için:")

@@ -4,6 +4,221 @@ import re
 from pathlib import Path
 from typing import List, Dict, Optional
 import io
+import datetime
+
+class EnhancedDocumentFormatter:
+    """Gelişmiş doküman formatı oluşturucu"""
+    
+    def __init__(self):
+        self.toc_entries = []
+        self.sections = []
+    
+    def create_enhanced_gitbook_document(self, content: str, title: str) -> str:
+        """Gelişmiş GitBook dokümanı oluşturur"""
+        
+        # Meta bilgiler
+        meta_section = f"""---
+title: {title}
+description: PDF'den dönüştürülmüş profesyonel Markdown dökümanı
+author: PDF to Markdown Converter
+date: {datetime.datetime.now().strftime('%Y-%m-%d')}
+tags: [pdf, markdown, gitbook, documentation]
+---
+
+"""
+        
+        # Ana başlık ve açılış
+        header_section = f"""# {title}
+
+📚 **Bu doküman PDF'den GitBook formatına dönüştürülmüştür**
+
+"""
+        
+        # İçindekiler tablosu
+        toc_section = self._create_enhanced_toc(content)
+        
+        # İçerik işleme
+        enhanced_content = self._enhance_content(content)
+        
+        # Alt bilgiler
+        footer_section = f"""
+
+---
+
+## 📚 Kaynak Bağlantıları
+
+Bu doküman hakkında daha fazla bilgi için [buraya tıklayın](#).
+
+---
+
+**📅 Oluşturulma Tarihi:** {datetime.datetime.now().strftime('%d %B %Y, %H:%M')}  
+**🔧 Dönüştürücü:** PDF to Markdown Converter v2.0  
+**📖 Format:** GitBook Uyumlu Markdown
+
+"""
+        
+        return meta_section + header_section + toc_section + enhanced_content + footer_section
+    
+    def _create_enhanced_toc(self, content: str) -> str:
+        """Gelişmiş içindekiler tablosu oluşturur"""
+        
+        toc = """## 📋 İçindekiler
+
+"""
+        
+        # Başlıkları tespit et
+        lines = content.split('\n')
+        chapter_count = 1
+        section_count = 1
+        
+        for line in lines:
+            line = line.strip()
+            
+            # Ana başlık (##)
+            if line.startswith('## ') and not line.startswith('### '):
+                title = line.replace('## ', '').strip()
+                anchor = self._create_anchor(title)
+                icon = self._get_section_icon(title)
+                toc += f"- {icon} [{title}](#{anchor})\n"
+                chapter_count += 1
+            
+            # Alt başlık (###)
+            elif line.startswith('### '):
+                title = line.replace('### ', '').strip()
+                anchor = self._create_anchor(title)
+                toc += f"  - [{title}](#{anchor})\n"
+                section_count += 1
+        
+        toc += "\n---\n\n"
+        return toc
+    
+    def _get_section_icon(self, title: str) -> str:
+        """Başlık tipine göre emoji döndürür"""
+        title_lower = title.lower()
+        
+        if any(word in title_lower for word in ['giriş', 'başlangıç', 'başlarken']):
+            return '🔧'
+        elif any(word in title_lower for word in ['kod', 'liste', 'tablo']):
+            return '💰'
+        elif any(word in title_lower for word in ['ülke', 'bölge', 'location']):
+            return '🌍'
+        elif any(word in title_lower for word in ['kanal', 'channel', 'iletişim']):
+            return '📡'
+        elif any(word in title_lower for word in ['fatura', 'invoice', 'belge']):
+            return '📄'
+        elif any(word in title_lower for word in ['sonuç', 'conclusion', 'özet']):
+            return '🎯'
+        else:
+            return '📖'
+    
+    def _enhance_content(self, content: str) -> str:
+        """İçeriği geliştirir ve formatlar"""
+        lines = content.split('\n')
+        enhanced_lines = []
+        in_table = False
+        
+        for i, line in enumerate(lines):
+            line = line.strip()
+            
+            if not line:
+                enhanced_lines.append('')
+                continue
+            
+            # Başlık formatlaması
+            if line.startswith('## '):
+                title = line.replace('## ', '').strip()
+                icon = self._get_section_icon(title)
+                enhanced_lines.append(f"## {icon} {title}")
+                enhanced_lines.append('')
+                continue
+            
+            elif line.startswith('### '):
+                enhanced_lines.append(line)
+                enhanced_lines.append('')
+                continue
+            
+            # Tablo formatlaması
+            if self._is_table_row(line):
+                if not in_table:
+                    in_table = True
+                    enhanced_lines.append('')  # Tablo öncesi boşluk
+                
+                formatted_row = self._format_table_row(line)
+                enhanced_lines.append(formatted_row)
+                
+                # İlk satırsa header separator ekle
+                if i == 0 or not self._is_table_row(lines[i-1]):
+                    cells = [cell.strip() for cell in line.split('|') if cell.strip()]
+                    separator = '| ' + ' | '.join(['---'] * len(cells)) + ' |'
+                    enhanced_lines.append(separator)
+            else:
+                if in_table:
+                    enhanced_lines.append('')  # Tablo sonrası boşluk
+                    in_table = False
+                
+                # Normal paragraf
+                enhanced_line = self._enhance_paragraph(line)
+                enhanced_lines.append(enhanced_line)
+        
+        return '\n'.join(enhanced_lines)
+    
+    def _is_table_row(self, line: str) -> bool:
+        """Satırın tablo satırı olup olmadığını kontrol eder"""
+        # Birden fazla tab veya çok boşlukla ayrılmış kolonlar
+        return bool(re.search(r'\t|\s{3,}', line)) and len(line.split()) > 2
+    
+    def _format_table_row(self, line: str) -> str:
+        """Tablo satırını formatlar"""
+        # Tab veya çoklu boşluklarla ayrılmış hücreleri ayır
+        cells = re.split(r'\t|\s{3,}', line.strip())
+        cells = [cell.strip() for cell in cells if cell.strip()]
+        
+        if len(cells) > 1:
+            return '| ' + ' | '.join(cells) + ' |'
+        return line
+    
+    def _enhance_paragraph(self, text: str) -> str:
+        """Paragrafı geliştirir"""
+        # Önemli terimleri vurgula
+        important_terms = [
+            ('ISO 4217', '**ISO 4217**'),
+            ('UN/EDIFACT', '**UN/EDIFACT**'),
+            ('GitBook', '**GitBook**'),
+            ('UBL-TR', '**UBL-TR**'),
+            ('SATIS', '`SATIS`'),
+            ('IADE', '`IADE`'),
+            ('TEVKIFAT', '`TEVKIFAT`'),
+        ]
+        
+        for term, replacement in important_terms:
+            text = text.replace(term, replacement)
+        
+        # Not: ifadelerini özel formatla
+        if text.startswith('Not:') or text.startswith('NOTE:'):
+            text = f"📝 **Not:** {text[4:].strip()}"
+        
+        # URL'leri tespit et ve formatla
+        url_pattern = r'(https?://[^\s]+)'
+        text = re.sub(url_pattern, r'[\1](\1)', text)
+        
+        return text
+    
+    def _create_anchor(self, title: str) -> str:
+        """GitBook uyumlu anchor oluşturur"""
+        # Türkçe karakterleri dönüştür
+        tr_chars = {
+            'ç': 'c', 'ğ': 'g', 'ı': 'i', 'ö': 'o', 'ş': 's', 'ü': 'u',
+            'Ç': 'C', 'Ğ': 'G', 'I': 'I', 'Ö': 'O', 'Ş': 'S', 'Ü': 'U'
+        }
+        
+        for tr_char, en_char in tr_chars.items():
+            title = title.replace(tr_char, en_char)
+        
+        # Özel karakterleri kaldır ve küçük harfe çevir
+        anchor = re.sub(r'[^a-zA-Z0-9\s-]', '', title)
+        anchor = re.sub(r'\s+', '-', anchor.strip().lower())
+        
+        return anchor
 
 class PDFToMarkdownConverter:
     def __init__(self):
@@ -201,8 +416,7 @@ description: PDF'den dönüştürülmüş Markdown dökümanı
     def save_images(self, images: List[Dict], output_dir: str):
         """Görüntüleri kaydet (pdfplumber sınırlı görüntü desteği)"""
         images_dir = os.path.join(output_dir, 'images')
-        os.makedirs(images_dir, exist_ok=True)
-        
+        os.makedirs(images_dir, exist_ok=True)        
         # pdfplumber ile görüntü verisi sınırlı olduğu için basit placeholder
         for img in images:
             if img['data']:  # Sadece veri varsa kaydet
@@ -210,19 +424,20 @@ description: PDF'den dönüştürülmüş Markdown dökümanı
                 with open(img_path, 'wb') as f:
                     f.write(img['data'])
     
-    def convert_pdf_to_markdown(self, pdf_path: str, output_dir: str = None, title: str = None) -> str:
+    def convert_pdf_to_markdown(self, pdf_path: str, output_dir: str = None, title: str = None, enhanced_format: bool = True) -> str:
         """Ana dönüştürme fonksiyonu"""
         if not os.path.exists(pdf_path):
             raise FileNotFoundError(f"PDF dosyası bulunamadı: {pdf_path}")
-        
-        # Çıktı dizini belirle
+          # Çıktı dizini belirle
         if output_dir is None:
             output_dir = os.path.dirname(pdf_path)
+            if not output_dir:  # Eğer dosya mevcut dizindeyse
+                output_dir = os.getcwd()
         
         os.makedirs(output_dir, exist_ok=True)
         
         # PDF'den içerik çıkar
-        print("PDF içeriği çıkarılıyor...")
+        print("📄 PDF içeriği çıkarılıyor...")
         pages_content = self.extract_text_from_pdf(pdf_path)
         
         # Tüm metinleri birleştir
@@ -237,16 +452,22 @@ description: PDF'den dönüştürülmüş Markdown dökümanı
             all_images.extend(page['images'])
         
         # Metni temizle ve başlıkları tespit et
-        print("Metin işleniyor...")
+        print("🔧 Metin işleniyor...")
         cleaned_text = self.clean_text(full_text)
         formatted_text = self.detect_headings(cleaned_text)
         
-        # GitBook formatına çevir
+        # Başlık belirle
         if title is None:
-            title = Path(pdf_path).stem
+            title = Path(pdf_path).stem.replace('_', ' ').replace('-', ' ').title()
         
-        print("GitBook formatına dönüştürülüyor...")
-        gitbook_content = self.format_for_gitbook(formatted_text, title)
+        # Format seçimi
+        if enhanced_format:
+            print("🎨 Gelişmiş GitBook formatına dönüştürülüyor...")
+            formatter = EnhancedDocumentFormatter()
+            gitbook_content = formatter.create_enhanced_gitbook_document(formatted_text, title)
+        else:
+            print("📚 Standart GitBook formatına dönüştürülüyor...")
+            gitbook_content = self.format_for_gitbook(formatted_text, title)
         
         # Markdown dosyasını kaydet
         output_file = os.path.join(output_dir, f"{title}.md")
@@ -255,10 +476,10 @@ description: PDF'den dönüştürülmüş Markdown dökümanı
         
         # Görüntüleri kaydet
         if all_images:
-            print(f"{len(all_images)} görüntü kaydediliyor...")
+            print(f"🖼️ {len(all_images)} görüntü kaydediliyor...")
             self.save_images(all_images, output_dir)
         
-        print(f"Dönüştürme tamamlandı! Çıktı: {output_file}")
+        print(f"✅ Dönüştürme tamamlandı! Çıktı: {output_file}")
         return output_file
     
     def convert_pdf_to_pages(self, pdf_path: str, output_dir: str = None, title: str = None) -> List[str]:
